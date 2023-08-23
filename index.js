@@ -9,8 +9,6 @@ const bodyparser = require("body-parser");
 
 const serverless = require("serverless-http");
 
-const auth = require("./routes/auth")
-
 
 require("dotenv").config();
 
@@ -32,7 +30,7 @@ app.get("/home",(req, res) => {
   res.status(200).send({msg:"Working App"});
 });
 
-app.use("/user", auth)
+app.use("/user", require("./routes/auth"))
 
 
 

@@ -7,7 +7,7 @@ const storage = multer.diskStorage({
     destination: (req, file, cb) => { cb(null, "uploads"); }, filename: (req, file, cb) => { cb(null, Date.now() + path.extname(file.originalname)); },
 });
 const upload = multer({ storage: storage });
-const express = require("express");
+const express = require("express")
 const router = express()
 router.post("/registration", auth.registration);
 // router.post("/loginWithPhone", auth.loginWithPhone);

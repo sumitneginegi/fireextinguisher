@@ -9,10 +9,28 @@ exports.registration = async (req, res) => {
   try {
     var { name,phone,email,password,lati,longi } = req.body;
 
-    
-    const saltRounds = 10; 
+    if (!name ||name.length==0) {
+      return res.status(400).json({ error: "name is required" });
+    }
+    if (!phone ||phone.length==0) {
+      return res.status(400).json({ error: "phone is required" });
+    }
+    if (!email ||email.length==0) {
+      return res.status(400).json({ error: "email is required" });
+    }
+    if (!password ||password.length==0) {
+      return res.status(400).json({ error: "password is required" });
+    }
+    if (!lati ||lati.length==0) {
+      return res.status(400).json({ error: "lati is required,longi" });
+    }
+    if (!longi ||longi.length==0) {
+      return res.status(400).json({ error: "longi is required" });
+    }
 
-    const hashedPassword = await bcrypt.hash(password, saltRounds);
+
+    const hashedPassword = await bcrypt.hash(password, 10); // 10 is the number of salt rounds
+    console.log(hashedPassword)
 
     var user = await User.findOne({ phone: phone, userType: "user" });
     
@@ -24,7 +42,7 @@ exports.registration = async (req, res) => {
       });
       req.body.otpExpiration = new Date(Date.now() + 5 * 60 * 1000);
       req.body.accountVerification = false;
-      req.body.userType = "USER"
+      req.body.userType = "user"
 
       const userCreate = await User.create({
         name,
@@ -33,10 +51,10 @@ exports.registration = async (req, res) => {
         password: hashedPassword,
         lati,
         longi,
-        otp,
-        otpExpiration,
-        accountVerification,
-        userType
+        otp:req.body.otp,
+        otpExpiration:req.body.otpExpiration,
+        accountVerification:req.body.accountVerification,
+        userType:req.body.userType
         });
 
 
@@ -65,39 +83,62 @@ exports.registration = async (req, res) => {
   }
 };
 
-// exports.loginWithPhone = async (req, res) => {
-//   try {
-//     const { phone } = req.body;
-//     const user = await User.findOne({ phone: phone, userType: "USER" });
-//     if (!user) {
-//       return res.status(400).send({ msg: "not found" });
-//     }
-//     const userObj = {};
-//     userObj.otp = newOTP.generate(4, {
-//       alphabets: false,
-//       upperCase: false,
-//       specialChar: false,
-//     });
-//     userObj.otpExpiration = new Date(Date.now() + 5 * 60 * 1000);
-//     userObj.accountVerification = false;
-//     const updated = await User.findOneAndUpdate(
-//       { phone: phone, userType: "USER" },
-//       userObj,
-//       { new: true }
-//     );
-//     let obj = {
-//       id: updated._id,
-//       otp: updated.otp,
-//       phone: updated.phone,
-//     };
-//     res
-//       .status(200)
-//       .send({ status: 200, message: "logged in successfully", data: obj });
-//   } catch (error) {
-//     console.error(error);
-//     res.status(500).json({ message: "Server error" });
-//   }
-// };
+
+
+
+exports.loginWithPhone = async (req, res) => {
+  try {
+    const { email, password } = req.body; // Corrected: Use 'phone' instead of 'email' in destructuring
+    const user = await User.findOne({ email: email, userType: "user" });
+
+    if (!user) {
+      return res.status(400).send({ msg: "User not found" });
+    }
+
+    // Compare the provided password with the hashed password stored in the database
+    const isPasswordValid = bcrypt.compare(password, user.password);
+
+    if (!isPasswordValid) {
+      return res.status(401).json({ error: "Invalid password" });
+    }
+
+
+    // If password is valid, generate OTP and update user data
+    const userObj = {};
+    userObj.otp = newOTP.generate(4, {
+      alphabets: false,
+      upperCase: false,
+      specialChar: false,
+    });
+    userObj.otpExpiration = new Date(Date.now() + 5 * 60 * 1000);
+    userObj.accountVerification = false;
+
+    const updated = await User.findOneAndUpdate(
+      { email: email, userType: "user" },
+      userObj,
+      { new: true }
+    );
+
+   // If the password is valid, create a JSON Web Token (JWT)
+   const token = jwt.sign({ user: user._id }, process.env.JWT_SECRET);
+
+    let obj = {
+      id: updated._id,
+      email: updated.email,
+      token
+    };
+
+    res
+      .status(200)
+      .send({ status: 200, message: "Logged in successfully", data: obj });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+
 
 // exports.verifyOtp = async (req, res) => {
 //   try {
