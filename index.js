@@ -31,6 +31,8 @@ app.get("/home",(req, res) => {
 });
 
 app.use("/user", require("./routes/auth"))
+app.use("/seller", require("./routes/seller"))
+app.use("/terms",require("./routes/termsAndCondition"))
 
 
 

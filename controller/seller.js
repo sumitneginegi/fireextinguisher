@@ -5,7 +5,7 @@ var newOTP = require("otp-generators");
 const User = require("../model/user");
 
 
-exports.registration = async (req, res) => {
+exports.registrationSeller = async (req, res) => {
   try {
     var { name,phone,email,password,lati,longi } = req.body;
 
@@ -32,7 +32,7 @@ exports.registration = async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10); // 10 is the number of salt rounds
     console.log(hashedPassword)
 
-    var user = await User.findOne({ phone: phone, userType: "user" });
+    var user = await User.findOne({ phone: phone, userType: "seller" });
     
     if (!user) {
       req.body.otp = newOTP.generate(4, {
@@ -42,7 +42,7 @@ exports.registration = async (req, res) => {
       });
       req.body.otpExpiration = new Date(Date.now() + 5 * 60 * 1000);
       req.body.accountVerification = false;
-      req.body.userType = "user"
+      req.body.userType = "seller"
 
       const userCreate = await User.create({
         name,
@@ -86,10 +86,10 @@ exports.registration = async (req, res) => {
 
 
 
-exports.loginWithPhone = async (req, res) => {
+exports.sellerloginPhone = async (req, res) => {
   try {
-    const { phone, password } = req.body; // Corrected: Use 'phone' instead of 'email' in destructuring
-    const user = await User.findOne({ phone: phone, userType: "user" });
+    const { phone, password } = req.body; 
+    const user = await User.findOne({ phone: phone, userType: "seller" });
 
     if (!user) {
       return res.status(400).send({ msg: "User not found" });
@@ -124,9 +124,8 @@ exports.loginWithPhone = async (req, res) => {
    const token = jwt.sign({ user: user._id }, process.env.KEY);
 
     let obj = {
-      id: updated._id,
-      phone: updated.phone,
-      token
+      phone: user.phone,
+      token:token
     };
 
     res
@@ -141,7 +140,7 @@ exports.loginWithPhone = async (req, res) => {
 
 
 
-exports.resendOTP = async (req, res) => {
+exports.resendOTPSeller = async (req, res) => {
   const { id } = req.params;
   try {
     const user = await User.findOne({ _id: id, userType: "user" });
@@ -167,12 +166,32 @@ exports.resendOTP = async (req, res) => {
     };
     res.status(200).send({ status: 200, message: "OTP resent", data: obj });
   } catch (error) {
-    console.error(error);
+    console.error(error)
     res
       .status(500)
       .send({ status: 500, message: "Server error" + error.message });
   }
+}
+
+
+exports.getProfileSeller = async (req, res) => {
+  try {
+    const data = await User.findOne({ _id: req.user._id });
+    if (data) {
+      return res
+        .status(200)
+        .json({ status: 200, message: "get Profile", data: data });
+    } else {
+      return res
+        .status(404)
+        .json({ status: 404, message: "No data found", data: {} });
+    }
+  } catch (error) {
+    console.log(error);
+    res.status(501).send({ status: 501, message: "server error.", data: {} });
+  }
 };
+
 
 // exports.verifyOtp = async (req, res) => {
 //   try {
@@ -207,56 +226,7 @@ exports.resendOTP = async (req, res) => {
 //   }
 // };
 
-// exports.getProfile = async (req, res) => {
-//   try {
-//     const data = await User.findOne({ _id: req.user._id });
-//     if (data) {
-//       return res
-//         .status(200)
-//         .json({ status: 200, message: "get Profile", data: data });
-//     } else {
-//       return res
-//         .status(404)
-//         .json({ status: 404, message: "No data found", data: {} });
-//     }
-//   } catch (error) {
-//     console.log(error);
-//     res.status(501).send({ status: 501, message: "server error.", data: {} });
-//   }
-// };
 
-// exports.resendOTP = async (req, res) => {
-//   const { id } = req.params;
-//   try {
-//     const user = await User.findOne({ _id: id, userType: "USER" });
-//     if (!user) {
-//       return res.status(404).send({ status: 404, message: "User not found" });
-//     }
-//     const otp = newOTP.generate(4, {
-//       alphabets: false,
-//       upperCase: false,
-//       specialChar: false,
-//     });
-//     const otpExpiration = new Date(Date.now() + 5 * 60 * 1000);
-//     const accountVerification = false;
-//     const updated = await User.findOneAndUpdate(
-//       { _id: user._id },
-//       { otp, otpExpiration, accountVerification },
-//       { new: true }
-//     );
-//     let obj = {
-//       id: updated._id,
-//       otp: updated.otp,
-//       phone: updated.phone,
-//     };
-//     res.status(200).send({ status: 200, message: "OTP resent", data: obj });
-//   } catch (error) {
-//     console.error(error);
-//     res
-//       .status(500)
-//       .send({ status: 500, message: "Server error" + error.message });
-//   }
-// };
 
 // exports.updateLocation = async (req, res) => {
 //   try {
